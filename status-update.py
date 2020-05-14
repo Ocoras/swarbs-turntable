@@ -63,7 +63,8 @@ def _nts_template_filler(
 ):
     """Handle NTS Shows that don't have a title"""
     bt = results[channel - 1][time]["broadcast_title"]
-
+    # Remove ampersand issues
+    bt = bt.replace("amp;", "")
     if bt.find("W/") > 0:
         # If a big W in there, split on that
         broadcast_title = bt.split("W/")
@@ -78,7 +79,7 @@ def _nts_template_filler(
     else:
         year = "LIVE"
     if len(broadcast_title) == 2:
-        # A W was there somewhere - reformat to match template
+        # A W was there somewhere - reformat to match templateamp
         if title is None:
             title = broadcast_title[0].strip()
         if artist is None:
