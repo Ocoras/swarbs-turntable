@@ -66,6 +66,15 @@ def _nts_template_filler(
     bt = results[channel - 1][time]["broadcast_title"]
     # Remove ampersand issues
     bt = bt.replace("amp;", "")
+
+    if bt.find("(R)") > 0:
+        # ToDo: Handle Re-records, and remove (R) symbol
+        print("This is a re-record, fetching original time.")
+        year = results[channel - 1][time]["embeds"]["details"]["broadcast"][:4]
+        bt = bt.replace(" (R)", "")
+    else:
+        year = "LIVE"
+
     if bt.find("W/") > 0:
         # If a big W in there, split on that
         broadcast_title = bt.split("W/")
@@ -73,12 +82,6 @@ def _nts_template_filler(
         # Otherwise try and split on little w
         broadcast_title = bt.split("w/")
 
-    if bt.find("(R)") > 0:
-        # ToDo: Handle Re-records, and remove (R) symbol
-        print("This is a re-record, could try and fetch original time here")
-        year = "N/A"
-    else:
-        year = "LIVE"
     if len(broadcast_title) == 2:
         # A W was there somewhere - reformat to match templateamp
         if title is None:
@@ -96,7 +99,11 @@ def _nts_template_filler(
         if artist is None:
             artist = broadcast_title[0].strip()
         if title is None:
-            t = results[channel - 1][time]["start_timestamp"]
+            if year == "LIVE":
+                t = results[channel - 1][time]["start_timestamp"]
+            else:
+                # Re record
+                t = results[channel - 1][time]["embeds"]["details"]["broadcast"]
             yr = t[2:4]
             month = t[5:7]
             day = t[8:10]
