@@ -67,7 +67,7 @@ def _nts_template_filler(
     results, channel, artist=None, title=None, time="now", swap=False
 ):
     """Handle NTS Shows that don't have a title"""
-    bt = results[channel - 1][time]["broadcast_title"]
+    bt = results[channel - 1][time]["embeds"]["details"]["name"]
     # Remove ampersand issues
     bt = bt.replace("amp;", "")
 
