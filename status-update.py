@@ -36,7 +36,9 @@ def _update_status(filled_template, imagedata):
     )
 
 
-def update_status_soundcloud_mix(url, artist=None, title=None, year=None):
+def update_status_soundcloud_mix(
+    url, artist=None, title=None, year=None, artist_title=False
+):
     r = requests.get(url)
     soup = BeautifulSoup(r.content, "html.parser")
 
@@ -45,6 +47,8 @@ def update_status_soundcloud_mix(url, artist=None, title=None, year=None):
         title = foundtitle.string.strip()
     if artist is None:
         artist = foundartist.string.strip()
+    if artist_title:
+        artist, title = title.split(" - ")
     if year is None:
         year = soup.find("time").string[:4]
     filled_template = template.format(artist=artist, title=title, year=year, url=url)
@@ -164,13 +168,21 @@ parser = argparse.ArgumentParser()
 parser.add_argument("url", help="URL to grab data from. (Soundcloud/NTS)")
 parser.add_argument("-a", "--artist", default=None, help="Artist override for tweet")
 parser.add_argument("-t", "--title", default=None, help="Title override for tweet")
+parser.add_argument(
+    "-at",
+    "--artist_title",
+    action="store_true",
+    help="Title contains ARTIST - TITLE already",
+)
 parser.add_argument("-y", "--year", default=None, help="Year override for tweet")
 parser.add_argument("-n", "--nts", default=1, help="NTS Channel (1/2)")
 args = parser.parse_args()
 
 if "soundcloud" in args.url:
     print("Source: Soundcloud")
-    update_status_soundcloud_mix(args.url, args.artist, args.title, args.year)
+    update_status_soundcloud_mix(
+        args.url, args.artist, args.title, args.year, args.artist_title
+    )
 elif "nts.live" in args.url:
     print("Source: NTS Live")
     update_status_ntslive(int(args.nts), args.artist, args.title)
