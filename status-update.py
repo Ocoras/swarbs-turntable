@@ -1,10 +1,12 @@
+#!/usr/bin/env python
 from twitter import *
 import requests
 from bs4 import BeautifulSoup
 import argparse
 import yaml
+import datetime
 
-with open("swarbs-turntable-login.yaml", "r") as stream:
+with open("/home/david/swarbs_turntable/swarbs-turntable-login.yaml", "r") as stream:
     try:
         config = yaml.safe_load(stream)
         auth = OAuth(
@@ -69,10 +71,12 @@ def _nts_template_filler(
     """Handle NTS Shows that don't have a title"""
     bt = results[channel - 1][time]["embeds"]["details"]["name"]
     # Remove ampersand issues
+
     bt = bt.replace("amp;", "")
 
-    if bt.find("(R)") > 0:
-        # ToDo: Handle Re-records, and remove (R) symbol
+    # Handle Re-records, and remove (R) symbol -- usually present in broadcast_title
+    broad = results[channel - 1][time]["broadcast_title"]
+    if broad.find("(R)") > 0:
         print("This is a re-record, fetching original time.")
         year = results[channel - 1][time]["embeds"]["details"]["broadcast"][:4]
         bt = bt.replace(" (R)", "")
@@ -82,9 +86,12 @@ def _nts_template_filler(
     if bt.find("W/") > 0:
         # If a big W in there, split on that
         broadcast_title = bt.split("W/")
-    else:
+    elif bt.find("w/") > 0:
         # Otherwise try and split on little w
         broadcast_title = bt.split("w/")
+    else:
+        # Handle "Presents:"
+        broadcast_title = bt.split(" Presents: ")
 
     if len(broadcast_title) == 2:
         # A W was there somewhere - reformat to match templateamp
@@ -164,10 +171,51 @@ def update_status_ntslive(channel, artist=None, title=None):
             flags = _nts_check(filled_template, flags)
 
 
+# Netil less favourable due to lack of artwork
+# def update_status_netil(artist=None, title=None):
+#     r = requests.get("https://studio.mixlr.com/api/stations/4/schedule.json")
+#     results = r.json()
+#     time = "on_air"
+#     bt = results[time]["show"]["title"]
+#     artist = results[time]["show"]["host"]
+
+
+def threads_template_filler(long_title, channel=1):
+    title = None
+    if long_title.find("w/") > 0:
+        # Try and split on little w
+        title, artist = long_title.split("w/")
+    else:
+        artist = long_title
+    if title is None:
+        t = datetime.datetime.now()
+        yr = str(t.year)[2:]
+        day = t.day
+        month = t.month
+        title = "{}/{}/{}".format(day, month, yr)
+    # ToDo handle different channels
+    year = "LIVE"
+    print(title, artist)
+    return template.format(
+        artist=artist, title=title, year=year, url="https://threadsradio.com/",
+    )
+
+
+def threads(artist=None, title=None, year=None):
+    r = requests.get("https://public.radio.co/stations/s1e48aa7d7/status")
+    results = r.json()
+    long_title = results["current_track"]["title"]
+    year = "LIVE"
+    temp = threads_template_filler(long_title)
+    img_url = results["current_track"]["artwork_url_large"]
+    imagedata = requests.get(img_link).content
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("url", help="URL to grab data from. (Soundcloud/NTS)")
 parser.add_argument("-a", "--artist", default=None, help="Artist override for tweet")
 parser.add_argument("-t", "--title", default=None, help="Title override for tweet")
+parser.add_argument("-i", "--image", default=None, help="Image override for tweet")
 parser.add_argument(
     "-at",
     "--artist_title",
@@ -186,3 +234,6 @@ if "soundcloud" in args.url:
 elif "nts.live" in args.url:
     print("Source: NTS Live")
     update_status_ntslive(int(args.nts), args.artist, args.title)
+elif "threads" in args.url:
+    print("Source: Threads Radio")
+    threads(args.artist, args.title, args.year)
