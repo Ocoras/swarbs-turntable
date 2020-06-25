@@ -89,6 +89,9 @@ def _nts_template_filler(
     elif bt.find("w/") > 0:
         # Otherwise try and split on little w
         broadcast_title = bt.split("w/")
+    elif bt.find("-") > 0:
+        # Or split on dash
+        broadcast_title = bt.split("-")
     else:
         # Handle "Presents:"
         broadcast_title = bt.split(" Presents: ")
