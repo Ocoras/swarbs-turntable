@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from twitter import *
 import requests
 from bs4 import BeautifulSoup
@@ -6,7 +6,7 @@ import argparse
 import yaml
 import datetime
 
-with open("/home/david/swarbs_turntable/swarbs-turntable-login.yaml", "r") as stream:
+with open("/home/david/swarbs-turntable/swarbs-turntable-login.yaml", "r") as stream:
     try:
         config = yaml.safe_load(stream)
         auth = OAuth(
