@@ -39,18 +39,22 @@ def _update_status(filled_template, imagedata):
 
 
 def update_status_soundcloud_mix(
-    url, artist=None, title=None, year=None, artist_title=False
+    url, artist=None, title=None, year=None, artist_title=False, image=None
 ):
     r = requests.get(url)
     soup = BeautifulSoup(r.content, "html.parser")
 
     foundtitle, foundartist = soup.find("h1").find_all("a")
+    if artist_title:
+        a, t = foundtitle.string.split("-")
+        if artist is None:
+            artist = a
+        if title is None:
+            title = t
     if title is None:
         title = foundtitle.string.strip()
     if artist is None:
         artist = foundartist.string.strip()
-    if artist_title:
-        artist, title = title.split(" - ")
     if year is None:
         year = soup.find("time").string[:4]
     filled_template = template.format(artist=artist, title=title, year=year, url=url)
@@ -58,12 +62,15 @@ def update_status_soundcloud_mix(
     print("About to Tweet: ", filled_template)
     ok = input("Does this look right? (y/n) ")
 
-    if ok == "y":
+    if ok == "y" and image is None:
         img_link = soup.find("img")["src"]
         imagedata = requests.get(img_link).content
         print("Tweeting: ", filled_template)
         _update_status(filled_template, imagedata)
-
+    elif ok =="y":
+        with open(image,encoding="latin") as imagedata:
+            print("Tweeting: ", filled_template)
+            _update_status(filled_template,imagedata.read())
 
 def _nts_template_filler(
     results, channel, artist=None, title=None, time="now", swap=False
@@ -232,7 +239,7 @@ args = parser.parse_args()
 if "soundcloud" in args.url:
     print("Source: Soundcloud")
     update_status_soundcloud_mix(
-        args.url, args.artist, args.title, args.year, args.artist_title
+        args.url, args.artist, args.title, args.year, args.artist_title, args.image
     )
 elif "nts.live" in args.url:
     print("Source: NTS Live")
