@@ -31,23 +31,31 @@ def generate_artist_dict(path_txt):
 def artist_lookup(artist, library_path):
     artists = generate_artist_dict(library_path)
     a = get_close_matches(artist, artists.keys(), n=3, cutoff=0.5)
-    print(a)
-    index = int(input("Which index matches? 0/1/2: "))
-    if index < len(a):
-        return artists[a[index]]
+    if len(a) == 1:
+        return artists[a[0]]
+    else:
+        print(a)
+        index = int(input("Which index matches? 0/1/2: "))
+        if index < len(a):
+            return artists[a[index]]
 
 
 def album_selector(artist, library_path):
     try:
         albums = artist_lookup(artist, library_path)
-        i = 0
-        keys = []
-        for a in albums.keys():
-            keys.append(a)
-            print(i, ": ", a)
-            i += 1
-        ok = int(input("Fetch metadata for album :"))
-        return get_album_track(albums[keys[ok]])
+        if len(albums) == 1:
+            # Return first (and only) album
+            return get_album_track(albums[next(iter(albums))])
+        else:
+            i = 0
+            keys = []
+            print("Please select an album:")
+            for a in albums.keys():
+                keys.append(a)
+                print(i, ": ", a)
+                i += 1
+            ok = int(input("Fetch metadata for album: "))
+            return get_album_track(albums[keys[ok]])
     except ValueError:
         # User didn't input a correct index
         return (None, None, None), None
@@ -62,6 +70,8 @@ def get_album_track(albumpath):
     cv = albumpath / "cover.jpg"
     if cv.exists():
         img = cv.read_bytes()
+    else:
+        img = None
     return data, img
 
 

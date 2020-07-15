@@ -231,13 +231,18 @@ def local_file_in_library(artist, library_location=None):
     else:
         lib = library_path
     data, img_data = album_selector(artist, lib)
-    filled_template = template.format(
-        artist=data[0], title=data[1], year=data[2], url=""
-    )
-    # remove / from it
-    filled_template = filled_template[:-1]
-    print(filled_template)
-    _update_status(filled_template, img_data)
+    if None in data:
+        pass
+    elif img_data is None:
+        print("No 'cover.jpg' file found for this album")
+    else:
+        filled_template = template.format(
+            artist=data[0], title=data[1], year=data[2], url=""
+        )
+        # remove /n from it
+        filled_template = filled_template[:-1]
+        print("Tweeting: ", filled_template)
+        _update_status(filled_template, img_data)
 
 
 parser = argparse.ArgumentParser()
