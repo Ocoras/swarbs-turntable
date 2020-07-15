@@ -6,6 +6,8 @@ import argparse
 import yaml
 import datetime
 
+from local_library_searching import album_selector
+
 with open("/home/david/swarbs_turntable/swarbs-turntable-login.yaml", "r") as stream:
     try:
         config = yaml.safe_load(stream)
@@ -15,6 +17,7 @@ with open("/home/david/swarbs_turntable/swarbs-turntable-login.yaml", "r") as st
             config["api_key"],
             config["api_secret_key"],
         )
+        library_path = config["library_path"]
     except yaml.YAMLError as exc:
         print("Could not load configuration file")
         raise
@@ -67,10 +70,11 @@ def update_status_soundcloud_mix(
         imagedata = requests.get(img_link).content
         print("Tweeting: ", filled_template)
         _update_status(filled_template, imagedata)
-    elif ok =="y":
-        with open(image,encoding="latin") as imagedata:
+    elif ok == "y":
+        with open(image, encoding="latin") as imagedata:
             print("Tweeting: ", filled_template)
-            _update_status(filled_template,imagedata.read())
+            _update_status(filled_template, imagedata.read())
+
 
 def _nts_template_filler(
     results, channel, artist=None, title=None, time="now", swap=False
@@ -221,10 +225,29 @@ def threads(artist=None, title=None, year=None):
     imagedata = requests.get(img_link).content
 
 
+def local_file_in_library(artist, library_location=None):
+    if library_location:
+        lib = library_location
+    else:
+        lib = library_path
+    data, img_data = album_selector(artist, lib)
+    filled_template = template.format(
+        artist=data[0], title=data[1], year=data[2], url=""
+    )
+    # remove / from it
+    filled_template = filled_template[:-1]
+    print(filled_template)
+    _update_status(filled_template, img_data)
+
+
 parser = argparse.ArgumentParser()
-parser.add_argument("url", help="URL to grab data from. (Soundcloud/NTS)")
+parser.add_argument(
+    "source",
+    help="Either URL to grab data from, or filesystem location. (Soundcloud/NTS)",
+)
 parser.add_argument("-a", "--artist", default=None, help="Artist override for tweet")
 parser.add_argument("-t", "--title", default=None, help="Title override for tweet")
+parser.add_argument("-l", "--library", default=None, help="Location of Music Library")
 parser.add_argument("-i", "--image", default=None, help="Image override for tweet")
 parser.add_argument(
     "-at",
@@ -236,14 +259,18 @@ parser.add_argument("-y", "--year", default=None, help="Year override for tweet"
 parser.add_argument("-n", "--nts", default=1, help="NTS Channel (1/2)")
 args = parser.parse_args()
 
-if "soundcloud" in args.url:
+if "soundcloud" in args.source:
     print("Source: Soundcloud")
     update_status_soundcloud_mix(
-        args.url, args.artist, args.title, args.year, args.artist_title, args.image
+        args.source, args.artist, args.title, args.year, args.artist_title, args.image
     )
-elif "nts.live" in args.url:
+elif "nts.live" in args.source:
     print("Source: NTS Live")
     update_status_ntslive(int(args.nts), args.artist, args.title)
-elif "threads" in args.url:
+elif "threads" in args.source:
     print("Source: Threads Radio")
     threads(args.artist, args.title, args.year)
+
+elif "local" in args.source:
+    print("Source: Local Library")
+    local_file_in_library(args.artist, args.library)
