@@ -77,7 +77,7 @@ def update_status_soundcloud_mix(
 
 
 def _nts_template_filler(
-    results, channel, artist=None, title=None, time="now", swap=False
+    results, channel, artist=None, title=None, time="now", swap=False, joint_hosts=False
 ):
     """Handle NTS Shows that don't have a title"""
     bt = results[channel - 1][time]["embeds"]["details"]["name"]
@@ -107,7 +107,15 @@ def _nts_template_filler(
         # Handle "Presents:"
         broadcast_title = bt.split(" Presents: ")
 
-    if len(broadcast_title) == 2:
+    if len(broadcast_title) == 2 and joint_hosts:
+        # Account for Host w/ Guest setups
+        host = broadcast_title[0].strip()
+        guest = broadcast_title[1].strip()
+        if swap:
+            broadcast_title = [guest + " & " + host]
+        else:
+            broadcast_title = [host + " & " + guest]
+    elif len(broadcast_title) == 2:
         # A W was there somewhere - reformat to match templateamp
         if title is None:
             title = broadcast_title[0].strip()
@@ -119,7 +127,8 @@ def _nts_template_filler(
             s = title
             title = artist
             artist = s
-    elif len(broadcast_title) == 1:
+    # New if statement for single
+    if len(broadcast_title) == 1:
         # Single dj title, so set the title to NTS + date
         if artist is None:
             artist = broadcast_title[0].strip()
@@ -142,16 +151,18 @@ def _nts_template_filler(
     )
 
 
-def _nts_check(filled_template, prev_answers=(False, False, False)):
+def _nts_check(filled_template, prev_answers=(False, False, False, False)):
     print("About to Tweet: ", filled_template)
-    ok = input("Does this look right? ([y]es/[n]ext/[s]wap) ")
+    ok = input("Does this look right? ([y]es/[n]ext/[s]wap/[g]uest) ")
 
     if ok == "y":
         return (True, False, False)
     elif ok == "n":
-        return (prev_answers[0], not prev_answers[1], prev_answers[2])
+        return (prev_answers[0], not prev_answers[1], prev_answers[2], prev_answers[3])
     elif ok == "s":
-        return (prev_answers[0], prev_answers[1], not prev_answers[2])
+        return (prev_answers[0], prev_answers[1], not prev_answers[2], prev_answers[3])
+    elif ok == "g":
+        return (prev_answers[0], prev_answers[1], prev_answers[2], not prev_answers[3])
     else:
         return (False, False, False)
 
@@ -165,22 +176,23 @@ def update_status_ntslive(channel, artist=None, title=None):
     flags = _nts_check(filled_template)
     time = "now"
     # 0 = y, 1 = next show, 2 = swap order of show/artist
-    while flags[0] or flags[1] or flags[2]:
+    while flags[0] or flags[1] or flags[2] or flags[3]:
         if flags[0]:
             img_link = results[channel - 1][time]["embeds"]["details"]["media"][
                 "picture_large"
             ]
             imagedata = requests.get(img_link).content
             _update_status(filled_template, imagedata)
-            flags = [False, False, False]  # Exit loop
+            flags = [False, False, False, False]  # Exit loop
         else:
             if flags[1]:
                 time = "next"
             else:
                 time = "now"
             swap = flags[2]
+            guest_host = flags[3]
             filled_template = _nts_template_filler(
-                results, channel, artist, title, time, swap
+                results, channel, artist, title, time, swap, guest_host
             )
             flags = _nts_check(filled_template, flags)
 
