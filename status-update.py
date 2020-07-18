@@ -190,9 +190,9 @@ def update_status_ntslive(channel, artist=None, title=None):
             else:
                 time = "now"
             swap = flags[2]
-            guest_host = flags[3]
+            joint_hosts = flags[3]
             filled_template = _nts_template_filler(
-                results, channel, artist, title, time, swap, guest_host
+                results, channel, artist, title, time, swap, joint_hosts
             )
             flags = _nts_check(filled_template, flags)
 
